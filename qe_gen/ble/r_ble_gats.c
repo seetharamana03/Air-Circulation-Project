@@ -14,12 +14,12 @@
 * following link:
 * http://www.renesas.com/disclaimer
 *
-* Copyright (C) 2019-2020 Renesas Electronics Corporation. All rights reserved.
+* Copyright (C) 2019 Renesas Electronics Corporation. All rights reserved.
 ***********************************************************************************************************************/
 /***********************************************************************************************************************
  * File Name: r_ble_gats.c
  * Version : 1.0
- * Description : The source file for GATT Service service.
+ * Description : The source file for Generic Attribute service.
  **********************************************************************************************************************/
 
 #include "r_ble_gats.h"
@@ -29,10 +29,10 @@
 static st_ble_servs_info_t gs_servs_info;
 
 /*----------------------------------------------------------------------------------------------------------------------
-    Service Changed Client Characteristic Configuration descriptor : Client Characteristic Configuration Descriptor
+    Service Changed Client Characteristic Configuration descriptor
 ----------------------------------------------------------------------------------------------------------------------*/
 
-static const st_ble_servs_desc_info_t gs_serv_chged_cli_cnfg = {
+static const st_ble_servs_desc_info_t gs_serv_changed_cli_cnfg = {
     .attr_hdl = BLE_GATS_SERV_CHGED_CLI_CNFG_DESC_HDL,
     .app_size = sizeof(uint16_t),
     .desc_idx = BLE_GATS_SERV_CHGED_CLI_CNFG_IDX,
@@ -41,67 +41,84 @@ static const st_ble_servs_desc_info_t gs_serv_chged_cli_cnfg = {
     .encode   = (ble_servs_attr_encode_t)encode_uint16_t,
 };
 
-ble_status_t R_BLE_GATS_SetServChgedCliCnfg(uint16_t conn_hdl, const uint16_t *p_value)
+ble_status_t R_BLE_GATS_SetServChangedCliCnfg(uint16_t conn_hdl, const uint16_t *p_value)
 {
-    return R_BLE_SERVS_SetDesc(&gs_serv_chged_cli_cnfg, conn_hdl, (const void *)p_value);
+    return R_BLE_SERVS_SetDesc(&gs_serv_changed_cli_cnfg, conn_hdl, (const void *)p_value);
 }
 
-ble_status_t R_BLE_GATS_GetServChgedCliCnfg(uint16_t conn_hdl, uint16_t *p_value)
+ble_status_t R_BLE_GATS_GetServChangedCliCnfg(uint16_t conn_hdl, uint16_t *p_value)
 {
-    return R_BLE_SERVS_GetDesc(&gs_serv_chged_cli_cnfg, conn_hdl, (void *)p_value);
+    return R_BLE_SERVS_GetDesc(&gs_serv_changed_cli_cnfg, conn_hdl, (void *)p_value);
 }
 
 /*----------------------------------------------------------------------------------------------------------------------
-    Service Changed characteristic : The Service Changed characteristic is a control-point attribute that shall be used to indicate to connected devices that services have changed.
+    Service Changed characteristic
 ----------------------------------------------------------------------------------------------------------------------*/
 
-static ble_status_t decode_st_ble_gats_serv_chged_t(st_ble_gats_serv_chged_t *p_app_value, const st_ble_gatt_value_t *p_gatt_value)
+static ble_status_t decode_st_ble_gats_serv_changed_t(st_ble_gats_serv_changed_t *p_app_value, const st_ble_gatt_value_t *p_gatt_value)
 {
-    /* Start user code for Service Changed characteristic value decode function. Do not edit comment generated here */
-    /* End user code. Do not edit comment generated here */
+    uint32_t pos = 0;
+
+    if (p_gatt_value->value_len < BLE_GATS_SERV_CHGED_LEN)
+    {
+        return BLE_ERR_INVALID_DATA;
+    }
+
+    BT_UNPACK_LE_2_BYTE(&p_app_value->start_hdl, &p_gatt_value->p_value[pos]);
+    pos += 2;
+    BT_UNPACK_LE_2_BYTE(&p_app_value->end_hdl, &p_gatt_value->p_value[pos]);
+    pos += 2;
+
     return BLE_SUCCESS;
 }
 
-static ble_status_t encode_st_ble_gats_serv_chged_t(const st_ble_gats_serv_chged_t *p_app_value, st_ble_gatt_value_t *p_gatt_value)
+static ble_status_t encode_st_ble_gats_serv_changed_t(const st_ble_gats_serv_changed_t *p_app_value, st_ble_gatt_value_t *p_gatt_value)
 {
-    /* Start user code for Service Changed characteristic value encode function. Do not edit comment generated here */
-    /* End user code. Do not edit comment generated here */
+    uint32_t pos = 0;
+
+    BT_PACK_LE_2_BYTE(&p_gatt_value->p_value[pos], &p_app_value->start_hdl);
+    pos += 2;
+    BT_PACK_LE_2_BYTE(&p_gatt_value->p_value[pos], &p_app_value->end_hdl);
+    pos += 2;
+
+    p_gatt_value->value_len = (uint16_t)pos;
+
     return BLE_SUCCESS;
 }
 
 /* Service Changed characteristic descriptor definition */
-static const st_ble_servs_desc_info_t *gspp_serv_chged_descs[] = { 
-    &gs_serv_chged_cli_cnfg,
+static const st_ble_servs_desc_info_t *gspp_serv_changed_descs[] = {
+    &gs_serv_changed_cli_cnfg,
 };
 
 /* Service Changed characteristic definition */
-static const st_ble_servs_char_info_t gs_serv_chged_char = {
+static const st_ble_servs_char_info_t gs_serv_changed_char = {
     .start_hdl    = BLE_GATS_SERV_CHGED_DECL_HDL,
     .end_hdl      = BLE_GATS_SERV_CHGED_CLI_CNFG_DESC_HDL,
     .char_idx     = BLE_GATS_SERV_CHGED_IDX,
-    .app_size     = sizeof(st_ble_gats_serv_chged_t),
+    .app_size     = sizeof(st_ble_gats_serv_changed_t),
     .db_size      = BLE_GATS_SERV_CHGED_LEN,
-    .decode       = (ble_servs_attr_decode_t)decode_st_ble_gats_serv_chged_t,
-    .encode       = (ble_servs_attr_encode_t)encode_st_ble_gats_serv_chged_t,
-    .pp_descs     = gspp_serv_chged_descs,
-    .num_of_descs = ARRAY_SIZE(gspp_serv_chged_descs),
+    .decode       = (ble_servs_attr_decode_t)decode_st_ble_gats_serv_changed_t,
+    .encode       = (ble_servs_attr_encode_t)encode_st_ble_gats_serv_changed_t,
+    .pp_descs     = gspp_serv_changed_descs,
+    .num_of_descs = ARRAY_SIZE(gspp_serv_changed_descs),
 };
 
-ble_status_t R_BLE_GATS_IndicateServChged(uint16_t conn_hdl, const st_ble_gats_serv_chged_t *p_value)
+ble_status_t R_BLE_GATS_IndicateServChanged(uint16_t conn_hdl, const st_ble_gats_serv_changed_t *p_value)
 {
-    return R_BLE_SERVS_SendHdlVal(&gs_serv_chged_char, conn_hdl, (const void *)p_value, false);
+    return R_BLE_SERVS_SendHdlVal(&gs_serv_changed_char, conn_hdl, (const void *)p_value, false);
 }
 
 /*----------------------------------------------------------------------------------------------------------------------
-    GATT Service server
+    Generic Attribute server
 ----------------------------------------------------------------------------------------------------------------------*/
 
-/* GATT Service characteristics definition */
+/* Generic Attribute characteristics definition */
 static const st_ble_servs_char_info_t *gspp_chars[] = {
-    &gs_serv_chged_char,
+    &gs_serv_changed_char,
 };
 
-/* GATT Service service definition */
+/* Generic Attribute service definition */
 static st_ble_servs_info_t gs_servs_info = {
     .pp_chars     = gspp_chars,
     .num_of_chars = ARRAY_SIZE(gspp_chars),

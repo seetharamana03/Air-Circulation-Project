@@ -1,40 +1,42 @@
 /***********************************************************************************************************************
-* DISCLAIMER
-* This software is supplied by Renesas Electronics Corporation and is only intended for use with Renesas products. No
-* other uses are authorized. This software is owned by Renesas Electronics Corporation and is protected under all
-* applicable laws, including copyright laws.
-* THIS SOFTWARE IS PROVIDED "AS IS" AND RENESAS MAKES NO WARRANTIES REGARDING
-* THIS SOFTWARE, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. ALL SUCH WARRANTIES ARE EXPRESSLY DISCLAIMED. TO THE MAXIMUM
-* EXTENT PERMITTED NOT PROHIBITED BY LAW, NEITHER RENESAS ELECTRONICS CORPORATION NOR ANY OF ITS AFFILIATED COMPANIES
-* SHALL BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES FOR ANY REASON RELATED TO THIS
-* SOFTWARE, EVEN IF RENESAS OR ITS AFFILIATES HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
-* Renesas reserves the right, without notice, to make changes to this software and to discontinue the availability of
-* this software. By using this software, you agree to the additional terms and conditions found by accessing the
-* following link:
-* http://www.renesas.com/disclaimer
-*
-* Copyright (C) 2019-2020 Renesas Electronics Corporation. All rights reserved.
-***********************************************************************************************************************/
+ * DISCLAIMER
+ * This software is supplied by Renesas Electronics Corporation and is only intended for use with Renesas products. No
+ * other uses are authorized. This software is owned by Renesas Electronics Corporation and is protected under all
+ * applicable laws, including copyright laws.
+ * THIS SOFTWARE IS PROVIDED "AS IS" AND RENESAS MAKES NO WARRANTIES REGARDING
+ * THIS SOFTWARE, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. ALL SUCH WARRANTIES ARE EXPRESSLY DISCLAIMED. TO THE MAXIMUM
+ * EXTENT PERMITTED NOT PROHIBITED BY LAW, NEITHER RENESAS ELECTRONICS CORPORATION NOR ANY OF ITS AFFILIATED COMPANIES
+ * SHALL BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES FOR ANY REASON RELATED TO THIS
+ * SOFTWARE, EVEN IF RENESAS OR ITS AFFILIATES HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+ * Renesas reserves the right, without notice, to make changes to this software and to discontinue the availability of
+ * this software. By using this software, you agree to the additional terms and conditions found by accessing the
+ * following link:
+ * http://www.renesas.com/disclaimer
+ *
+ * Copyright (C) 2019-2020 Renesas Electronics Corporation. All rights reserved.
+ ***********************************************************************************************************************/
 
 /******************************************************************************
-* File Name    : app_main.c
-* Device(s)    : RA4W1
-* Tool-Chain   : e2Studio
-* Description  : This is a application file for peripheral role.
-*******************************************************************************/
+ * File Name    : app_main.c
+ * Device(s)    : RA4W1
+ * Tool-Chain   : e2Studio
+ * Description  : This is a application file for peripheral role.
+ *******************************************************************************/
 
 /******************************************************************************
  Includes   <System Includes> , "Project Includes"
-*******************************************************************************/
+ *******************************************************************************/
 #include <string.h>
 #include "r_ble_api.h"
 #include "rm_ble_abs.h"
 #include "rm_ble_abs_api.h"
+#include "common_utils.h"
 #include "gatt_db.h"
 #include "profile_cmn/r_ble_servs_if.h"
 #include "profile_cmn/r_ble_servc_if.h"
 #include "hal_data.h"
+#include "SEGGER_RTT/SEGGER_RTT.h"
 
 /* This code is needed for using FreeRTOS */
 #if (BSP_CFG_RTOS == 2 || BSP_CFG_RTOS_USED == 1)
@@ -42,18 +44,18 @@
 #include "task.h"
 #include "event_groups.h"
 #define BLE_EVENT_PATTERN   (0x0A0A)
-EventGroupHandle_t  g_ble_event_group_handle;
+EventGroupHandle_t g_ble_event_group_handle;
 #endif
-#include "r_ble_gats.h"
-#include "r_ble_senss.h"
-#include "r_ble_evktempctrls.h"
-#include "r_ble_rtcs.h"
-#include "ble_thread.h"
+#include "r_ble_qc_svcs.h"
 
 /******************************************************************************
  User file includes
-*******************************************************************************/
+ *******************************************************************************/
 /* Start user code for file includes. Do not edit comment generated here */
+#include "qe_ble_profile.h"
+#include "ble_thread.h"
+#include "gui_cfg.h"
+#include "qc_svc.h"
 /* End user code. Do not edit comment generated here */
 
 #define BLE_LOG_TAG "app_main"
@@ -63,13 +65,15 @@ EventGroupHandle_t  g_ble_event_group_handle;
 
 /******************************************************************************
  User macro definitions
-*******************************************************************************/
+ *******************************************************************************/
 /* Start user code for macro definitions. Do not edit comment generated here */
+#define BLE_OPTIMAL_MTU                     101
+#define EVENT_BIT_NOTIFY_CFM                (1UL << 0)
 /* End user code. Do not edit comment generated here */
 
 /******************************************************************************
  Generated function prototype declarations
-*******************************************************************************/
+ *******************************************************************************/
 /* Internal functions */
 void gap_cb(uint16_t type, ble_status_t result, st_ble_evt_data_t *p_data);
 void gatts_cb(uint16_t type, ble_status_t result, st_ble_gatts_evt_data_t *p_data);
@@ -80,88 +84,156 @@ void app_main(void);
 
 /******************************************************************************
  User function prototype declarations
-*******************************************************************************/
+ *******************************************************************************/
 /* Start user code for function prototype declarations. Do not edit comment generated here */
+static void handle_read_gui_req(uint16_t id, uint8_t const *const data);
+static void handle_write_pwm(uint16_t id, uint8_t const *const data);
+static void handle_write_temp(uint16_t id, uint8_t const *const data);
+static void handle_write_humidity(uint16_t id, uint8_t const *const data);
+static void handle_read_temperature(uint16_t id, uint8_t const *const data);
+static void handle_read_humidity(uint16_t id, uint8_t const *const data);
+static void handle_read_tvoc(uint16_t id, uint8_t const *const data);
+static void handle_read_eCO2(uint16_t id, uint8_t const *const data);
+static void handle_read_iaq(uint16_t id, uint8_t const *const data);
+static void handle_read_rtc(uint16_t id, uint8_t const *const data);
+static void handle_read_NC03(uint16_t id, uint8_t const *const data);
+static void handle_read_NC05(uint16_t id, uint8_t const *const data);
+static void handle_read_NC1(uint16_t id, uint8_t const *const data);
+static void handle_read_NC25(uint16_t id, uint8_t const *const data);
+static void handle_read_NC4(uint16_t id, uint8_t const *const data);
+static void handle_read_PM1_1(uint16_t id, uint8_t const *const data);
+static void handle_read_PM25_1(uint16_t id, uint8_t const *const data);
+static void handle_read_PM10_1(uint16_t id, uint8_t const *const data);
+static void handle_read_PM1_2(uint16_t id, uint8_t const *const data);
+static void handle_read_PM25_2(uint16_t id, uint8_t const *const data);
+static void handle_read_PM10_2(uint16_t id, uint8_t const *const data);
+static void handle_read_dust_concentration(uint16_t id, uint8_t const *const data);
+static void handle_read_dust_accumulation(uint16_t id, uint8_t const *const data);
+static void handle_read_fan_speed(uint16_t id, uint8_t const *const data);
+static void handle_read_fan_status(uint16_t id, uint8_t const *const data);
+static void handle_read_version(uint16_t id, uint8_t const *const data);
+static void send_qc_svc_response(uint8_t const *const p_data, uint16_t len);
+static void led_timer_cb(TimerHandle_t xTimer);
 /* End user code. Do not edit comment generated here */
 
 /******************************************************************************
  Generated global variables
-*******************************************************************************/
+ *******************************************************************************/
 /* Advertising Data */
 static uint8_t gs_advertising_data[] =
-{
-    /* Flags */
-    0x02, /**< Data Size */
-    0x01, /**< Data Type */
-    ( 0x06 ), /**< Data Value */
+        {
+        /* Flags */
+        0x02, /**< Data Size */
+          0x01, /**< Data Type */
+          (0x06), /**< Data Value */
 
-    /* Complete Local Name */
-    0x0F, /**< Data Size */
-    0x09, /**< Data Type */
-    0x41, 0x69, 0x72, 0x43, 0x69, 0x72, 0x63, 0x75, 0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, /**< Data Value */
-};
+          /* Complete Local Name */
+          0x17, /**< Data Size */
+          0x09, /**< Data Type */
+          0x55, 0x53, 0x30, 0x30, 0x30, 0x2d, 0x51, 0x43, 0x2d, 0x53, 0x61, 0x6e, 0x64, 0x62, 0x6f, 0x78, 0x2d, 0x52, 0x41, 0x36, 0x4d, 0x34, /**< Data Value */
+        };
 
 ble_abs_legacy_advertising_parameter_t g_ble_advertising_parameter =
-{
- .p_peer_address             = NULL,       ///< Peer address.
- .slow_advertising_interval  = 0x00000640, ///< Slow advertising interval. 1,000.0(ms)
- .slow_advertising_period    = 0x0000,     ///< Slow advertising period.
- .p_advertising_data         = gs_advertising_data,             ///< Advertising data. If p_advertising_data is specified as NULL, advertising data is not set.
- .advertising_data_length    = ARRAY_SIZE(gs_advertising_data), ///< Advertising data length (in bytes).
- .advertising_filter_policy  = BLE_ABS_ADVERTISING_FILTER_ALLOW_ANY, ///< Advertising Filter Policy.
- .advertising_channel_map    = ( BLE_GAP_ADV_CH_37 | BLE_GAP_ADV_CH_38 | BLE_GAP_ADV_CH_39 ), ///< Channel Map.
- .own_bluetooth_address_type = BLE_GAP_ADDR_RAND, ///< Own Bluetooth address type.
- .own_bluetooth_address      = { 0 },
-};
+{ .p_peer_address = NULL,       ///< Peer address.
+  .slow_advertising_interval = 0x000000A0, ///< Slow advertising interval. 100.0(ms)
+  .slow_advertising_period = 0x0000,     ///< Slow advertising period.
+  .p_advertising_data = gs_advertising_data, ///< Advertising data. If p_advertising_data is specified as NULL, advertising data is not set.
+  .advertising_data_length = ARRAY_SIZE(gs_advertising_data), ///< Advertising data length (in bytes).
+  .advertising_filter_policy = BLE_ABS_ADVERTISING_FILTER_ALLOW_ANY, ///< Advertising Filter Policy.
+  .advertising_channel_map = ( BLE_GAP_ADV_CH_37 | BLE_GAP_ADV_CH_38 | BLE_GAP_ADV_CH_39), ///< Channel Map.
+  .own_bluetooth_address_type = BLE_GAP_ADDR_RAND, ///< Own Bluetooth address type.
+  .own_bluetooth_address =
+  { 0 }, };
 
 /* GATT server callback parameters */
 ble_abs_gatt_server_callback_set_t gs_abs_gatts_cb_param[] =
 {
-    {
-        .gatt_server_callback_function = gatts_cb,
-        .gatt_server_callback_priority = 1,
-    },
-    {
-        .gatt_server_callback_function = NULL,
-    }
-};
+{ .gatt_server_callback_function = gatts_cb, .gatt_server_callback_priority = 1, },
+  { .gatt_server_callback_function = NULL, } };
 
 /* GATT client callback parameters */
 ble_abs_gatt_client_callback_set_t gs_abs_gattc_cb_param[] =
 {
-    {
-        .gatt_client_callback_function = gattc_cb,
-        .gatt_client_callback_priority = 1,
-    },
-    {
-        .gatt_client_callback_function = NULL,
-    }
-};
+{ .gatt_client_callback_function = gattc_cb, .gatt_client_callback_priority = 1, },
+  { .gatt_client_callback_function = NULL, } };
 
 /* GATT server Prepare Write Queue parameters */
-static st_ble_gatt_queue_elm_t  gs_queue_elms[BLE_GATTS_QUEUE_ELEMENTS_SIZE];
+static st_ble_gatt_queue_elm_t gs_queue_elms[BLE_GATTS_QUEUE_ELEMENTS_SIZE];
 static uint8_t gs_buffer[BLE_GATTS_QUEUE_BUFFER_LEN];
-static st_ble_gatt_pre_queue_t gs_queue[BLE_GATTS_QUEUE_NUM] = {
-    {
-        .p_buf_start = gs_buffer,
-        .buffer_len  = BLE_GATTS_QUEUE_BUFFER_LEN,
-        .p_queue     = gs_queue_elms,
-        .queue_size  = BLE_GATTS_QUEUE_ELEMENTS_SIZE,
-    }
-};
+static st_ble_gatt_pre_queue_t gs_queue[BLE_GATTS_QUEUE_NUM] =
+{
+{ .p_buf_start = gs_buffer, .buffer_len = BLE_GATTS_QUEUE_BUFFER_LEN, .p_queue = gs_queue_elms, .queue_size =
+BLE_GATTS_QUEUE_ELEMENTS_SIZE, } };
 
 /* Connection handle */
 uint16_t g_conn_hdl;
 
 /******************************************************************************
  User global variables
-*******************************************************************************/
+ *******************************************************************************/
 /* Start user code for global variables. Do not edit comment generated here */
+static const qc_svc_request_handlers_t qc_sv_req_handlers[] =
+{
+/* Object ID   Read Handler                  Write Handler */
+{ 0x0000, handle_read_gui_req, NULL },
+  { 0x0100, NULL, handle_write_pwm },
+  { 0x0101, NULL, handle_write_temp },
+  { 0x0102, NULL, handle_write_humidity },
+  { 0x0201, handle_read_temperature, NULL },
+  { 0x0202, handle_read_humidity, NULL },
+  { 0x0203, handle_read_tvoc, NULL },
+  { 0x0204, handle_read_eCO2, NULL },
+  { 0x0205, handle_read_iaq, NULL },
+  { 0x0206, handle_read_rtc, NULL },
+  { 0x0301, handle_read_version, NULL },
+  { 0x0401, handle_read_NC03, NULL },
+  { 0x0402, handle_read_NC05, NULL },
+  { 0x0403, handle_read_NC1, NULL },
+  { 0x0404, handle_read_NC25, NULL },
+  { 0x0405, handle_read_NC4, NULL },
+  { 0x0501, handle_read_PM1_1, NULL },
+  { 0x0502, handle_read_PM25_1, NULL },
+  { 0x0503, handle_read_PM10_1, NULL },
+  { 0x0601, handle_read_PM1_2, NULL },
+  { 0x0602, handle_read_PM25_2, NULL },
+  { 0x0603, handle_read_PM10_2, NULL },
+  { 0x0702, handle_read_dust_concentration, NULL },
+  { 0x0703, handle_read_dust_accumulation, NULL },
+  { 0x0704, handle_read_fan_speed, NULL },
+  { 0x0705, handle_read_fan_status, NULL },
+  { 0xFFFF, NULL, NULL } };
+
+static TimerHandle_t led_timer;
+static EventGroupHandle_t event_group;
+static int16_t temperature;
+static int16_t humidity;
+static int16_t tvoc;
+static int16_t eCO2;
+static int16_t iaq;
+static int16_t rtc;
+static int16_t NC03;
+static int16_t NC05;
+static int16_t NC1;
+static int16_t NC25;
+static int16_t NC4;
+static int16_t PM1_1;
+static int16_t PM25_1;
+static int16_t PM10_1;
+static int16_t PM1_2;
+static int16_t PM25_2;
+static int16_t PM10_2;
+static bool dust_concentration = false;
+static bool dust_accumulation = false;
+static bool fan_speed = false;
+static bool fan_status = false;
+static char *version_str = "1.0.0";
+static bool led_on = false;
+
 /* End user code. Do not edit comment generated here */
 
 /******************************************************************************
  Generated function definitions
-*******************************************************************************/
+ *******************************************************************************/
 /******************************************************************************
  * Function Name: gap_cb
  * Description  : Callback function for GAP API.
@@ -175,60 +247,102 @@ uint16_t g_conn_hdl;
  ******************************************************************************/
 void gap_cb(uint16_t type, ble_status_t result, st_ble_evt_data_t *p_data)
 {
-/* Hint: Input common process of callback function such as variable definitions */
-/* Start user code for GAP callback function common process. Do not edit comment generated here */
+    /* Hint: Input common process of callback function such as variable definitions */
+    /* Start user code for GAP callback function common process. Do not edit comment generated here */
+    switch (type)
+    {
+        case BLE_GAP_EVENT_CONN_IND:
+        {
+            if (BLE_SUCCESS == result)
+            {
+                uint16_t mtu;
+                st_ble_gap_conn_evt_t *p_gap_conn_evt_param = (st_ble_gap_conn_evt_t*) p_data->p_param;
+
+                /* Turn green LED on to show that someone has connected to us */
+                xTimerStop(led_timer, 0);
+                R_IOPORT_PinWrite (&g_ioport_ctrl, BSP_IO_PORT_04_PIN_04, BSP_IO_LEVEL_HIGH);
+
+                if (BLE_SUCCESS == R_BLE_GATT_GetMtu (p_gap_conn_evt_param->conn_hdl, &mtu))
+                {
+                    if (mtu > BLE_OPTIMAL_MTU)
+                    {
+                        mtu = BLE_OPTIMAL_MTU;
+                    }
+                    /* Notifications used to send data have an overhead of 3 bytes */
+                    (void) qc_svc_set_transport_mtu (mtu - 3);
+                }
+            }
+        }
+        break;
+
+        case BLE_GAP_EVENT_DISCONN_IND:
+        {
+            R_IOPORT_PinWrite (&g_ioport_ctrl, BSP_IO_PORT_04_PIN_04, BSP_IO_LEVEL_LOW);
+            led_on = true;
+            xTimerStart(led_timer, 0);
+        }
+        break;
+
+        default:
+        {
+            ; /* Do nothing */
+        }
+        break;
+    }
+
     /* End user code. Do not edit comment generated here */
 
-    switch(type)
+    switch (type)
     {
         case BLE_GAP_EVENT_STACK_ON:
         {
             /* Get BD address for Advertising */
-            R_BLE_VS_GetBdAddr(BLE_VS_ADDR_AREA_REG, BLE_GAP_ADDR_RAND);
-        } break;
+            R_BLE_VS_GetBdAddr (BLE_VS_ADDR_AREA_REG, BLE_GAP_ADDR_RAND);
+        }
+        break;
 
         case BLE_GAP_EVENT_CONN_IND:
         {
             if (BLE_SUCCESS == result)
             {
                 /* Store connection handle */
-                st_ble_gap_conn_evt_t *p_gap_conn_evt_param = (st_ble_gap_conn_evt_t *)p_data->p_param;
+                st_ble_gap_conn_evt_t *p_gap_conn_evt_param = (st_ble_gap_conn_evt_t*) p_data->p_param;
                 g_conn_hdl = p_gap_conn_evt_param->conn_hdl;
             }
             else
             {
                 /* Restart advertising when connection failed */
-                RM_BLE_ABS_StartLegacyAdvertising(&g_ble_abs0_ctrl, &g_ble_advertising_parameter);
+                RM_BLE_ABS_StartLegacyAdvertising (&g_ble_abs0_ctrl, &g_ble_advertising_parameter);
             }
-        } break;
+        }
+        break;
 
         case BLE_GAP_EVENT_DISCONN_IND:
         {
             /* Restart advertising when disconnected */
             g_conn_hdl = BLE_GAP_INVALID_CONN_HDL;
-            RM_BLE_ABS_StartLegacyAdvertising(&g_ble_abs0_ctrl, &g_ble_advertising_parameter);
-        } break;
+            RM_BLE_ABS_StartLegacyAdvertising (&g_ble_abs0_ctrl, &g_ble_advertising_parameter);
+        }
+        break;
 
         case BLE_GAP_EVENT_CONN_PARAM_UPD_REQ:
         {
             /* Send connection update response with value received on connection update request */
-            st_ble_gap_conn_upd_req_evt_t *p_conn_upd_req_evt_param = (st_ble_gap_conn_upd_req_evt_t *)p_data->p_param;
+            st_ble_gap_conn_upd_req_evt_t *p_conn_upd_req_evt_param = (st_ble_gap_conn_upd_req_evt_t*) p_data->p_param;
 
-            st_ble_gap_conn_param_t conn_updt_param = {
-                .conn_intv_min = p_conn_upd_req_evt_param->conn_intv_min,
-                .conn_intv_max = p_conn_upd_req_evt_param->conn_intv_max,
-                .conn_latency  = p_conn_upd_req_evt_param->conn_latency,
-                .sup_to        = p_conn_upd_req_evt_param->sup_to,
-            };
+            st_ble_gap_conn_param_t conn_updt_param =
+            { .conn_intv_min = p_conn_upd_req_evt_param->conn_intv_min, .conn_intv_max =
+                      p_conn_upd_req_evt_param->conn_intv_max,
+              .conn_latency = p_conn_upd_req_evt_param->conn_latency, .sup_to = p_conn_upd_req_evt_param->sup_to, };
 
-            R_BLE_GAP_UpdConn(p_conn_upd_req_evt_param->conn_hdl,
-                              BLE_GAP_CONN_UPD_MODE_RSP,
-                              BLE_GAP_CONN_UPD_ACCEPT,
-                              &conn_updt_param);
-        } break;
+            R_BLE_GAP_UpdConn (p_conn_upd_req_evt_param->conn_hdl,
+            BLE_GAP_CONN_UPD_MODE_RSP,
+                               BLE_GAP_CONN_UPD_ACCEPT, &conn_updt_param);
+        }
+        break;
 
-/* Hint: Add cases of GAP event macros defined as BLE_GAP_XXX */
-/* Start user code for GAP callback function event process. Do not edit comment generated here */
+            /* Hint: Add cases of GAP event macros defined as BLE_GAP_XXX */
+            /* Start user code for GAP callback function event process. Do not edit comment generated here */
             /* End user code. Do not edit comment generated here */
     }
 }
@@ -246,15 +360,52 @@ void gap_cb(uint16_t type, ble_status_t result, st_ble_evt_data_t *p_data)
  ******************************************************************************/
 void gatts_cb(uint16_t type, ble_status_t result, st_ble_gatts_evt_data_t *p_data)
 {
-/* Hint: Input common process of callback function such as variable definitions */
-/* Start user code for GATT Server callback function common process. Do not edit comment generated here */
+    /* Hint: Input common process of callback function such as variable definitions */
+    /* Start user code for GATT Server callback function common process. Do not edit comment generated here */
+    switch (type)
+    {
+        case BLE_GATTS_EVENT_DB_ACCESS_IND:
+        {
+            st_ble_gatts_db_access_evt_t *p_gatts_db_access_evt = p_data->p_param;
+            st_ble_gatt_value_t *p_gatt_value = &p_gatts_db_access_evt->p_params->value;
+
+            if (BLE_GATTS_OP_CHAR_PEER_WRITE_REQ == p_gatts_db_access_evt->p_params->db_op)
+            {
+                if (QE_ATTRIBUTE_HANDLE_CHARACTERISTIC_VALUE_QC_SVC_QC_REQ == p_gatts_db_access_evt->p_params->attr_hdl)
+                {
+                    qc_svc_handle_request ((uint8_t*) p_gatt_value->p_value, p_gatt_value->value_len);
+                }
+            }
+        }
+        break;
+
+        case BLE_GATTS_EVENT_HDL_VAL_CNF:
+        {
+            st_ble_gatts_cfm_evt_t *p_gatts_cfm_evt = p_data->p_param;
+
+            if (QE_ATTRIBUTE_HANDLE_CHARACTERISTIC_VALUE_QC_SVC_QC_RSP == p_gatts_cfm_evt->attr_hdl)
+            {
+                xEventGroupSetBits (event_group, EVENT_BIT_NOTIFY_CFM);
+            }
+        }
+        break;
+
+        default:
+        {
+            /* Unhandled event type - do nothing */
+        }
+        break;
+    }
+
+    /* Not using the QE generated GATTS code */
+    return;
     /* End user code. Do not edit comment generated here */
 
-    R_BLE_SERVS_GattsCb(type, result, p_data);
-    switch(type)
+    R_BLE_SERVS_GattsCb (type, result, p_data);
+    switch (type)
     {
-/* Hint: Add cases of GATT Server event macros defined as BLE_GATTS_XXX */
-/* Start user code for GATT Server callback function event process. Do not edit comment generated here */
+    /* Hint: Add cases of GATT Server event macros defined as BLE_GATTS_XXX */
+    /* Start user code for GATT Server callback function event process. Do not edit comment generated here */
     /* End user code. Do not edit comment generated here */
     }
 }
@@ -272,16 +423,16 @@ void gatts_cb(uint16_t type, ble_status_t result, st_ble_gatts_evt_data_t *p_dat
  ******************************************************************************/
 void gattc_cb(uint16_t type, ble_status_t result, st_ble_gattc_evt_data_t *p_data)
 {
-/* Hint: Input common process of callback function such as variable definitions */
-/* Start user code for GATT Client callback function common process. Do not edit comment generated here */
+    /* Hint: Input common process of callback function such as variable definitions */
+    /* Start user code for GATT Client callback function common process. Do not edit comment generated here */
     /* End user code. Do not edit comment generated here */
 
-    R_BLE_SERVC_GattcCb(type, result, p_data);
-    switch(type)
+    R_BLE_SERVC_GattcCb (type, result, p_data);
+    switch (type)
     {
 
-/* Hint: Add cases of GATT Client event macros defined as BLE_GATTC_XXX */
-/* Start user code for GATT Client callback function event process. Do not edit comment generated here */
+    /* Hint: Add cases of GATT Client event macros defined as BLE_GATTC_XXX */
+    /* Start user code for GATT Client callback function event process. Do not edit comment generated here */
     /* End user code. Do not edit comment generated here */
     }
 }
@@ -299,135 +450,53 @@ void gattc_cb(uint16_t type, ble_status_t result, st_ble_gattc_evt_data_t *p_dat
  ******************************************************************************/
 void vs_cb(uint16_t type, ble_status_t result, st_ble_vs_evt_data_t *p_data)
 {
-/* Hint: Input common process of callback function such as variable definitions */
-/* Start user code for vender specific callback function common process. Do not edit comment generated here */
+    /* Hint: Input common process of callback function such as variable definitions */
+    /* Start user code for vender specific callback function common process. Do not edit comment generated here */
     /* End user code. Do not edit comment generated here */
-    
-    R_BLE_SERVS_VsCb(type, result, p_data);
-    switch(type)
+
+    R_BLE_SERVS_VsCb (type, result, p_data);
+    switch (type)
     {
         case BLE_VS_EVENT_GET_ADDR_COMP:
         {
             /* Start advertising when BD address is ready */
-            st_ble_vs_get_bd_addr_comp_evt_t * get_address = (st_ble_vs_get_bd_addr_comp_evt_t *)p_data->p_param;
-            memcpy(g_ble_advertising_parameter.own_bluetooth_address, get_address->addr.addr, BLE_BD_ADDR_LEN);
-            RM_BLE_ABS_StartLegacyAdvertising(&g_ble_abs0_ctrl, &g_ble_advertising_parameter);
-        } break;
+            st_ble_vs_get_bd_addr_comp_evt_t *get_address = (st_ble_vs_get_bd_addr_comp_evt_t*) p_data->p_param;
+            memcpy (g_ble_advertising_parameter.own_bluetooth_address, get_address->addr.addr, BLE_BD_ADDR_LEN);
+            RM_BLE_ABS_StartLegacyAdvertising (&g_ble_abs0_ctrl, &g_ble_advertising_parameter);
+        }
+        break;
 
-/* Hint: Add cases of vender specific event macros defined as BLE_VS_XXX */
-/* Start user code for vender specific callback function event process. Do not edit comment generated here */
+            /* Hint: Add cases of vender specific event macros defined as BLE_VS_XXX */
+            /* Start user code for vender specific callback function event process. Do not edit comment generated here */
             /* End user code. Do not edit comment generated here */
     }
 }
 
 /******************************************************************************
- * Function Name: gats_cb
- * Description  : Callback function for GATT Service server feature.
+ * Function Name: qc_svcs_cb
+ * Description  : Callback function for Quick Connect Service server feature.
  * Arguments    : uint16_t type -
- *                  Event type of GATT Service server feature.
+ *                  Event type of Quick Connect Service server feature.
  *              : ble_status_t result -
- *                  Event result of GATT Service server feature.
+ *                  Event result of Quick Connect Service server feature.
  *              : st_ble_servs_evt_data_t *p_data - 
- *                  Event parameters of GATT Service server feature.
+ *                  Event parameters of Quick Connect Service server feature.
  * Return Value : none
  ******************************************************************************/
-static void gats_cb(uint16_t type, ble_status_t result, st_ble_servs_evt_data_t *p_data)
-{
-/* Hint: Input common process of callback function such as variable definitions */
-/* Start user code for GATT Service Server callback function common process. Do not edit comment generated here */
-    /* End user code. Do not edit comment generated here */
-
-    switch(type)
-    {
-/* Hint: Add cases of GATT Service server events defined in e_ble_gats_event_t */
-/* Start user code for GATT Service Server callback function event process. Do not edit comment generated here */
-    /* End user code. Do not edit comment generated here */
-    }    
-}
-
-/******************************************************************************
- * Function Name: senss_cb
- * Description  : Callback function for Sensor server feature.
- * Arguments    : uint16_t type -
- *                  Event type of Sensor server feature.
- *              : ble_status_t result -
- *                  Event result of Sensor server feature.
- *              : st_ble_servs_evt_data_t *p_data - 
- *                  Event parameters of Sensor server feature.
- * Return Value : none
- ******************************************************************************/
-static void senss_cb(uint16_t type, ble_status_t result, st_ble_servs_evt_data_t *p_data)
-{
-/* Hint: Input common process of callback function such as variable definitions */
-/* Start user code for Sensor Server callback function common process. Do not edit comment generated here */
-    /* End user code. Do not edit comment generated here */
-
-    switch(type)
-    {
-/* Hint: Add cases of Sensor server events defined in e_ble_senss_event_t */
-/* Start user code for Sensor Server callback function event process. Do not edit comment generated here */
-    /* End user code. Do not edit comment generated here */
-    }    
-}
-
-/******************************************************************************
- * Function Name: evktempctrls_cb
- * Description  : Callback function for RA6M4 Temp Control server feature.
- * Arguments    : uint16_t type -
- *                  Event type of RA6M4 Temp Control server feature.
- *              : ble_status_t result -
- *                  Event result of RA6M4 Temp Control server feature.
- *              : st_ble_servs_evt_data_t *p_data - 
- *                  Event parameters of RA6M4 Temp Control server feature.
- * Return Value : none
- ******************************************************************************/
-static void evktempctrls_cb(uint16_t type, ble_status_t result, st_ble_servs_evt_data_t *p_data)
+static void qc_svcs_cb(uint16_t type, ble_status_t result, st_ble_servs_evt_data_t *p_data)
 {
     /* Hint: Input common process of callback function such as variable definitions */
-    /* Start user code for RA6M4 Temp Control Server callback function common process. Do not edit comment generated here */
+    /* Start user code for Quick Connect Service Server callback function common process. Do not edit comment generated here */
+    FSP_PARAMETER_NOT_USED(result);
+    FSP_PARAMETER_NOT_USED(p_data);
     /* End user code. Do not edit comment generated here */
 
     switch (type)
     {
-        case BLE_EVKTEMPCTRLS_EVENT_TEMPCTRL_WRITE_REQ:
-        {
-            if (BLE_SUCCESS == result)
-            {
-                uint8_t state = *(uint8_t*) p_data->p_param;
-                uint8_t data[1] = { state };
-                        xQueueSend(g_ble_queue, (uint8_t* )data, 0);
-                        xEventGroupSetBits (g_ble_event_group_handle, BLE_EVENT_PATTERN);
-            }
-        }
-            /* Hint: Add cases of RA6M4 Temp Control server events defined in e_ble_evktempctrls_event_t */
-            /* Start user code for RA6M4 Temp Control Server callback function event process. Do not edit comment generated here */
-            /* End user code. Do not edit comment generated here */
+    /* Hint: Add cases of Quick Connect Service server events defined in e_ble_qc_svcs_event_t */
+    /* Start user code for Quick Connect Service Server callback function event process. Do not edit comment generated here */
+    /* End user code. Do not edit comment generated here */
     }
-}
-
-/******************************************************************************
- * Function Name: rtcs_cb
- * Description  : Callback function for Real Time Clock server feature.
- * Arguments    : uint16_t type -
- *                  Event type of Real Time Clock server feature.
- *              : ble_status_t result -
- *                  Event result of Real Time Clock server feature.
- *              : st_ble_servs_evt_data_t *p_data - 
- *                  Event parameters of Real Time Clock server feature.
- * Return Value : none
- ******************************************************************************/
-static void rtcs_cb(uint16_t type, ble_status_t result, st_ble_servs_evt_data_t *p_data)
-{
-/* Hint: Input common process of callback function such as variable definitions */
-/* Start user code for Real Time Clock Server callback function common process. Do not edit comment generated here */
-    /* End user code. Do not edit comment generated here */
-
-    switch(type)
-    {
-/* Hint: Add cases of Real Time Clock server events defined in e_ble_rtcs_event_t */
-/* Start user code for Real Time Clock Server callback function event process. Do not edit comment generated here */
-    /* End user code. Do not edit comment generated here */
-    }    
 }
 /******************************************************************************
  * Function Name: ble_init
@@ -443,59 +512,38 @@ ble_status_t ble_init(void)
     fsp_err_t err;
 
     /* Initialize BLE */
-    err = RM_BLE_ABS_Open(&g_ble_abs0_ctrl, &g_ble_abs0_cfg);
+    err = RM_BLE_ABS_Open (&g_ble_abs0_ctrl, &g_ble_abs0_cfg);
     if (FSP_SUCCESS != err)
     {
         return err;
     }
 
     /* Initialize GATT Database */
-    status = R_BLE_GATTS_SetDbInst(NULL);
+    status = R_BLE_GATTS_SetDbInst (NULL);
     if (BLE_SUCCESS != status)
     {
         return BLE_ERR_INVALID_OPERATION;
     }
 
     /* Initialize GATT server */
-    status = R_BLE_SERVS_Init();
+    status = R_BLE_SERVS_Init ();
     if (BLE_SUCCESS != status)
     {
         return BLE_ERR_INVALID_OPERATION;
     }
 
     /*Initialize GATT client */
-    status = R_BLE_SERVC_Init();
+    status = R_BLE_SERVC_Init ();
     if (BLE_SUCCESS != status)
     {
         return BLE_ERR_INVALID_OPERATION;
     }
-    
+
     /* Set Prepare Write Queue */
-    R_BLE_GATTS_SetPrepareQueue(gs_queue, BLE_GATTS_QUEUE_NUM);
+    R_BLE_GATTS_SetPrepareQueue (gs_queue, BLE_GATTS_QUEUE_NUM);
 
-    /* Initialize GATT Service server API */
-    status = R_BLE_GATS_Init(gats_cb);
-    if (BLE_SUCCESS != status)
-    {
-        return BLE_ERR_INVALID_OPERATION;
-    }
-
-    /* Initialize Sensor server API */
-    status = R_BLE_SENSS_Init(senss_cb);
-    if (BLE_SUCCESS != status)
-    {
-        return BLE_ERR_INVALID_OPERATION;
-    }
-
-    /* Initialize RA6M4 Temp Control server API */
-    status = R_BLE_EVKTEMPCTRLS_Init(evktempctrls_cb);
-    if (BLE_SUCCESS != status)
-    {
-        return BLE_ERR_INVALID_OPERATION;
-    }
-
-    /* Initialize Real Time Clock server API */
-    status = R_BLE_RTCS_Init(rtcs_cb);
+    /* Initialize Quick Connect Service server API */
+    status = R_BLE_QC_SVCS_Init (qc_svcs_cb);
     if (BLE_SUCCESS != status)
     {
         return BLE_ERR_INVALID_OPERATION;
@@ -523,6 +571,13 @@ void app_main(void)
 
     /* Hint: Input process that should be done before main loop such as calling initial function or variable definitions */
     /* Start user code for process before main loop. Do not edit comment generated here */
+    led_timer = xTimerCreate ("led_timer", pdMS_TO_TICKS(500), pdTRUE, NULL, led_timer_cb);
+    xTimerStart(led_timer, 0);
+
+    event_group = xEventGroupCreate ();
+
+    (void) qc_svc_register_handlers (&qc_sv_req_handlers[0]);
+    (void) qc_svc_register_transmit_cb (send_qc_svc_response);
     /* End user code. Do not edit comment generated here */
 
     /* main loop */
@@ -545,21 +600,68 @@ void app_main(void)
 
         /* Hint: Input process that should be done during main loop such as calling processing functions */
         /* Start user code for process during main loop. Do not edit comment generated here */
-        /* End user code. Do not edit comment generated here */
-        int16_t sens_data[2] =
-        { 0 };
-        if (pdTRUE == xQueueReceive (g_sensor_queue, &sens_data[0], 0))
+        EventBits_t event_bits = xEventGroupGetBits(event_group);
+        if (event_bits & EVENT_BIT_NOTIFY_CFM)
         {
-            (void) R_BLE_SENSS_SetTemp (&sens_data[0]);
-            (void) R_BLE_SENSS_SetHumid (&sens_data[1]);
+            xEventGroupClearBits (event_group, EVENT_BIT_NOTIFY_CFM);
+            qc_svc_handle_response_write_cfm ();
+        }
+        int16_t sens_data[20] =
+        { 0 };
+        if (pdTRUE == xQueueReceive (g_sensor_queue, &sens_data, 0))
+        {
+            APP_PRINT("Sensor Data Successfully Received");
+            temperature = sens_data[0];
+            humidity = sens_data[1];
+            tvoc = sens_data[2];
+            eCO2 = sens_data[3];
+            iaq = sens_data[4];
+            NC03 = sens_data[5];
+            NC05 = sens_data[6];
+            NC1 = sens_data[7];
+            NC25 = sens_data[8];
+            NC4 = sens_data[9];
+            PM1_1 = sens_data[10];
+            PM25_1 = sens_data[11];
+            PM10_1 = sens_data[12];
+            PM1_2 = sens_data[13];
+            PM25_2 = sens_data[14];
+            PM10_2 = sens_data[15];
+            if(sens_data[16] == 1){
+              dust_concentration = true;
+            }
+            else{
+              dust_concentration = false;
+            }
+            if(sens_data[17] == 1){
+              dust_accumulation = true;
+            }
+            else{
+              dust_accumulation = false;
+            }
+            if(sens_data[18] == 1){
+              fan_speed = true;
+            }
+            else{
+              fan_speed = false;
+            }
+            if(sens_data[19] == 1){
+              fan_status = true;
+            }
+            else{
+              fan_status = false;
+            }
         }
 
-        int16_t time_data[1] = { 0 };
-        if (pdTRUE == xQueueReceive (g_rtc_queue, &time_data[0], 0)){
-            (void) R_BLE_RTCS_SetTime(&time_data[0]);
+        int16_t rtc_data[1] =
+        { 0 };
+        if (pdTRUE == xQueueReceive (g_rtc_queue, &rtc_data, 0))
+        {
+            rtc = rtc_data[0];
         }
-
+        /* End user code. Do not edit comment generated here */
     }
+
     /* Hint: Input process that should be done after main loop such as calling closing functions */
     /* Start user code for process after main loop. Do not edit comment generated here */
     /* End user code. Do not edit comment generated here */
@@ -567,8 +669,240 @@ void app_main(void)
     /* Terminate BLE */
     RM_BLE_ABS_Close (&g_ble_abs0_ctrl);
 }
+
 /******************************************************************************
  User function definitions
  *******************************************************************************/
 /* Start user code for function definitions. Do not edit comment generated here */
+static void handle_read_gui_req(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(id);
+    FSP_PARAMETER_NOT_USED(data);
+
+    uint16_t len = strlen ((char*) gui_cfg);
+
+    if (0 < len)
+    {
+        qc_svc_send_read_response (QC_SVC_SUCCESS, id, len, (uint8_t*) &gui_cfg[0]);
+    }
+}
+
+static void handle_write_pwm(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(id);
+
+    uint8_t pwm_data = data[4];
+
+    uint8_t send_data[1] =
+    { pwm_data };
+    xQueueSend(g_pwm_queue, (uint8_t* )send_data, 0);
+    xEventGroupSetBits (g_ble_event_group_handle, BLE_EVENT_PATTERN);
+}
+
+static void handle_write_temp(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(id);
+
+    uint8_t temp_data = data[4];
+
+    uint8_t send_data[1] =
+    { temp_data };
+    xQueueSend(g_temp_queue, (uint8_t* )send_data, 0);
+    xEventGroupSetBits (g_ble_event_group_handle, BLE_EVENT_PATTERN);
+}
+
+static void handle_write_humidity(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(id);
+
+    uint8_t humid_data = data[4];
+
+    uint8_t send_data[1] =
+    { humid_data };
+    xQueueSend(g_humid_queue, (uint8_t* )send_data, 0);
+    xEventGroupSetBits (g_ble_event_group_handle, BLE_EVENT_PATTERN);
+}
+
+
+static void handle_read_temperature(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(temperature), (uint8_t*) &temperature);
+}
+
+static void handle_read_humidity(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(humidity), (uint8_t*) &humidity);
+}
+
+static void handle_read_tvoc(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(tvoc), (uint8_t*) &tvoc);
+}
+
+static void handle_read_eCO2(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(eCO2), (uint8_t*) &eCO2);
+}
+
+static void handle_read_iaq(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(iaq), (uint8_t*) &iaq);
+}
+
+static void handle_read_rtc(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(rtc), (uint8_t*) &rtc);
+}
+
+static void handle_read_NC03(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(NC03), (uint8_t*) &NC03);
+}
+
+static void handle_read_NC05(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(NC05), (uint8_t*) &NC05);
+}
+
+static void handle_read_NC1(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(NC1), (uint8_t*) &NC1);
+}
+
+static void handle_read_NC25(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(NC25), (uint8_t*) &NC25);
+}
+
+static void handle_read_NC4(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(NC4), (uint8_t*) &NC4);
+}
+
+static void handle_read_PM1_1(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(PM1_1), (uint8_t*) &PM1_1);
+}
+
+static void handle_read_PM25_1(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(PM25_1), (uint8_t*) &PM25_1);
+}
+
+static void handle_read_PM10_1(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(PM10_1), (uint8_t*) &PM10_1);
+}
+
+static void handle_read_PM1_2(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(PM1_2), (uint8_t*) &PM1_2);
+}
+
+static void handle_read_PM25_2(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(PM25_2), (uint8_t*) &PM25_2);
+}
+
+static void handle_read_PM10_2(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(PM10_2), (uint8_t*) &PM10_2);
+}
+
+static void handle_read_dust_concentration(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(dust_concentration), (uint8_t*) &dust_concentration);
+}
+
+static void handle_read_dust_accumulation(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(dust_accumulation), (uint8_t*) &dust_accumulation);
+}
+
+static void handle_read_fan_speed(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(fan_speed), (uint8_t*) &fan_speed);
+}
+
+static void handle_read_fan_status(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, sizeof(fan_status), (uint8_t*) &fan_status);
+}
+
+static void handle_read_version(uint16_t id, uint8_t const *const data)
+{
+    FSP_PARAMETER_NOT_USED(data);
+
+    qc_svc_send_read_response (QC_SVC_SUCCESS, id, (uint16_t) strlen (version_str), (uint8_t*) version_str);
+}
+
+static void send_qc_svc_response(uint8_t const *const p_data, uint16_t len)
+{
+    st_ble_gatt_hdl_value_pair_t hdl_value_pair;
+
+    hdl_value_pair.attr_hdl = QE_ATTRIBUTE_HANDLE_CHARACTERISTIC_VALUE_QC_SVC_QC_RSP;
+    hdl_value_pair.value.p_value = (uint8_t*) p_data;
+    hdl_value_pair.value.value_len = len;
+
+    (void) R_BLE_GATTS_Notification (g_conn_hdl, &hdl_value_pair);
+}
+
+static void led_timer_cb(TimerHandle_t xTimer)
+{
+    FSP_PARAMETER_NOT_USED(xTimer);
+
+    if (true == led_on)
+    {
+        R_IOPORT_PinWrite (&g_ioport_ctrl, BSP_IO_PORT_04_PIN_04, BSP_IO_LEVEL_LOW);
+        led_on = false;
+    }
+    else
+    {
+        R_IOPORT_PinWrite (&g_ioport_ctrl, BSP_IO_PORT_04_PIN_04, BSP_IO_LEVEL_HIGH);
+        led_on = true;
+    }
+}
+
 /* End user code. Do not edit comment generated here */

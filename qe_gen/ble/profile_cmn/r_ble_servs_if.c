@@ -625,8 +625,6 @@ ble_status_t R_BLE_SERVS_GetChar(const st_ble_servs_char_info_t *p_attr, uint16_
     }
 
     st_ble_gatt_value_t gatt_value;
-    gatt_value.value_len = p_attr->db_size;
-    gatt_value.p_value = malloc(p_attr->db_size);
 
     ret = R_BLE_GATTS_GetAttr(conn_hdl, (uint16_t)(p_attr->start_hdl + 1), &gatt_value);
 
@@ -635,7 +633,6 @@ ble_status_t R_BLE_SERVS_GetChar(const st_ble_servs_char_info_t *p_attr, uint16_
         ret = p_attr->decode(p_app_value, &gatt_value);
     }
 
-    free(gatt_value.p_value);
     return ret;
 }
 

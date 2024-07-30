@@ -14,12 +14,12 @@
 * following link:
 * http://www.renesas.com/disclaimer
 *
-* Copyright (C) 2019-2020 Renesas Electronics Corporation. All rights reserved.
+* Copyright (C) 2019 Renesas Electronics Corporation. All rights reserved.
 ***********************************************************************************************************************/
 /***********************************************************************************************************************
  * File Name: r_ble_gats.h
  * Version : 1.0
- * Description : The header file for GATT Service service.
+ * Description : The header file for Generic Attribute service.
  **********************************************************************************************************************/
 /***********************************************************************************************************************
  * History : DD.MM.YYYY Version Description
@@ -28,7 +28,7 @@
 
 /*******************************************************************************************************************//**
  * @file
- * @defgroup gats GATT Service Service
+ * @defgroup gats Generic Attribute Service Server
  * @{
  * @ingroup profile
  * @brief   The Generic Attribute Service contains generic information of the GATT attributes.
@@ -40,8 +40,7 @@
 #define R_BLE_GATS_H
 
 /*----------------------------------------------------------------------------------------------------------------------
-    Service Changed Characteristic : The Service Changed characteristic is a control-point attribute that shall be used to indicate to connected devices that services have changed.
-        Client Characteristic Configuration descriptor : Client Characteristic Configuration Descriptor
+    Service Changed Characteristic
 ----------------------------------------------------------------------------------------------------------------------*/
 
 /***************************************************************************//**
@@ -50,7 +49,7 @@
 typedef struct {
     uint16_t start_hdl; /**< Start of Affected Attribute Handle Range */
     uint16_t end_hdl; /**< End of Affected Attribute Handle Range */
-} st_ble_gats_serv_chged_t;
+} st_ble_gats_serv_changed_t;
 
 /***************************************************************************//**
  * @brief     Send indication of  Service Changed characteristic value to the remote device.
@@ -58,7 +57,7 @@ typedef struct {
  * @param[in] p_value  Characteristic value to send.
  * @return    @ref ble_status_t
 *******************************************************************************/
-ble_status_t R_BLE_GATS_IndicateServChged(uint16_t conn_hdl, const st_ble_gats_serv_chged_t *p_value);
+ble_status_t R_BLE_GATS_IndicateServChanged(uint16_t conn_hdl, const st_ble_gats_serv_changed_t *p_value);
 
 /***************************************************************************//**
  * @brief     Set Service Changed cli cnfg descriptor value to the local GATT database.
@@ -66,7 +65,7 @@ ble_status_t R_BLE_GATS_IndicateServChged(uint16_t conn_hdl, const st_ble_gats_s
  * @param[in] p_value  Descriptor value to set.
  * @return    @ref ble_status_t
 *******************************************************************************/
-ble_status_t R_BLE_GATS_SetServChgedCliCnfg(uint16_t conn_hdl, const uint16_t *p_value);
+ble_status_t R_BLE_GATS_SetServChangedCliCnfg(uint16_t conn_hdl, const uint16_t *p_value);
 
 /***************************************************************************//**
  * @brief     Get Service Changed cli cnfg descriptor value from the local GATT database.
@@ -74,33 +73,30 @@ ble_status_t R_BLE_GATS_SetServChgedCliCnfg(uint16_t conn_hdl, const uint16_t *p
  * @param[out] p_value  Output location for the acquired descriptor value.
  * @return    @ref ble_status_t
 *******************************************************************************/
-ble_status_t R_BLE_GATS_GetServChgedCliCnfg(uint16_t conn_hdl, uint16_t *p_value);
+ble_status_t R_BLE_GATS_GetServChangedCliCnfg(uint16_t conn_hdl, uint16_t *p_value);
 
 /*----------------------------------------------------------------------------------------------------------------------
-    GATT Service Service
+    Generic Attribute Service
 ----------------------------------------------------------------------------------------------------------------------*/
 
 /***************************************************************************//**
- * @brief GATT Service characteristic Index.
+ * @brief Generic Attribute characteristic Index.
 *******************************************************************************/
 typedef enum {
     BLE_GATS_SERV_CHGED_IDX,
     BLE_GATS_SERV_CHGED_CLI_CNFG_IDX,
-} e_ble_gats_char_idx_t;
+} st_ble_gats_char_idx_t;
 
 /***************************************************************************//**
- * @brief GATT Service event type.
+ * @brief Generic Attribute event type.
 *******************************************************************************/
 typedef enum {
     /* Service Changed */
     BLE_GATS_EVENT_SERV_CHGED_HDL_VAL_CNF = BLE_SERVS_ATTR_EVENT(BLE_GATS_SERV_CHGED_IDX, BLE_SERVS_HDL_VAL_CNF),
-    BLE_GATS_EVENT_SERV_CHGED_CLI_CNFG_WRITE_REQ = BLE_SERVS_ATTR_EVENT(BLE_GATS_SERV_CHGED_CLI_CNFG_IDX, BLE_SERVS_WRITE_REQ),
-    BLE_GATS_EVENT_SERV_CHGED_CLI_CNFG_WRITE_COMP = BLE_SERVS_ATTR_EVENT(BLE_GATS_SERV_CHGED_CLI_CNFG_IDX, BLE_SERVS_WRITE_COMP),
-    BLE_GATS_EVENT_SERV_CHGED_CLI_CNFG_READ_REQ = BLE_SERVS_ATTR_EVENT(BLE_GATS_SERV_CHGED_CLI_CNFG_IDX, BLE_SERVS_READ_REQ),
 } e_ble_gats_event_t;
 
 /***************************************************************************//**
- * @brief     Initialize GATT Service service.
+ * @brief     Initialize Generic Attribute service.
  * @param[in] cb Service callback.
  * @return    @ref ble_status_t
 *******************************************************************************/
