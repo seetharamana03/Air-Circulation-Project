@@ -8,6 +8,7 @@ void ble_thread_entry(void *pvParameters)
     FSP_PARAMETER_NOT_USED (pvParameters);
 
     /* TODO: add your own code here */
+    vTaskDelay(1000);
     app_main();
 
     while (1)

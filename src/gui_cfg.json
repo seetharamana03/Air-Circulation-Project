@@ -1,0 +1,339 @@
+{
+  "gui":
+  {
+    "id": "0000",
+    "title": "US000 QC Example",
+    "version:": "0.0.1",
+    "tab":
+    [
+      {
+        "id": "0001",
+        "name": "Control",
+        "slider":
+        [
+           {
+             "id": "0100",
+             "name": "Fan Speed",
+             "type": "uint8_t",
+             "minimum": 0,
+             "maximum": 100,
+             "units": "%",
+             "default": 0
+           },
+           {
+             "id": "0101",
+             "name": "Set Temperature",
+             "type": "uint8_t",
+             "minimum": 0,
+             "maximum": 100,
+             "units": "C",
+             "default": 0
+           },
+           {
+             "id": "0102",
+             "name": "Set Humidity",
+             "type": "uint8_t",
+             "minimum": 0,
+             "maximum": 100,
+             "units": "%",
+             "default": 0
+           }
+        ]        
+      },
+      {
+        "id": "0002",
+        "name": "Data",
+        "parameters":
+        {
+          "id": "0200",
+          "type": "blob",
+          "access": "r",
+          "list":
+          [
+            {
+              "id": "0201",
+              "name": "Temperature",
+              "units": "Centigrade",
+              "type": "int16_t",
+              "access": "r",
+              "scale": "0.01",
+              "precision": "2",
+              "value": null
+            },
+            {
+              "id": "0202",
+              "name": "Humidity",
+              "units": "%",
+              "type": "int16_t",
+              "access": "r",
+              "scale": "0.01",
+              "precision": "2",
+              "value": null
+            },
+            {
+              "id": "0203",
+              "name": "TVOC",
+              "units": "mg/m3",
+              "type": "int16_t",
+              "access": "r",
+              "scale": "0.01",
+              "precision": "2",
+              "value": null
+            },
+            {
+              "id": "0204",
+              "name": "Carbon Dioxide",
+              "units": "ppm",
+              "type": "int16_t",
+              "access": "r",
+              "scale": "0.01",
+              "precision": "2",
+              "value": null
+            },
+            {
+              "id": "0205",
+              "name": "Indoor Air Quality",
+              "units": "",
+              "type": "int16_t",
+              "access": "r",
+              "scale": "0.01",
+              "precision": "0",
+              "value": null
+            },
+            {
+              "id": "0206",
+              "name": "Real Time Clock",
+              "units": "sec",
+              "type": "int16_t",
+              "access": "r",
+              "value": null
+            }
+          ]
+        }
+      },
+      {
+        "id": "0003",
+        "name": "About",
+        "parameters":
+        {
+          "id": "0300",
+          "type": "blob",
+          "access": "r",
+          "list":
+          [
+            {
+              "id": "0301",
+              "name": "Test Version",
+              "type": "string",
+              "access": "const",
+              "value": null
+            }
+          ]
+        }
+      },
+      {
+        "id": "0004",
+      	"name": "Number Concentration",
+      	"access": "r",
+        "parameters":
+        {
+          "id": "0400",
+          "type": "blob",
+          "access": "rw",
+          "list":
+          [      	 
+            {
+      	      "id": "0401",
+      		  "name": "Number Concentration of Particle Size 0.3um-10um",
+      		  "units": "p/cm3",
+              "type": "int16_t",
+              "access": "r",
+              "scale": "0.1",
+              "precision": "2",
+              "value": null
+      	    },
+      	    {
+      		  "id": "0402",
+      		  "name": "Number Concentration of Particle Size 0.5um-10um",
+      		  "units": "p/cm3",
+              "type": "int16_t",
+              "access": "r",
+              "scale": "0.1",
+              "precision": "2",
+              "value": null
+            },
+            {
+      	      "id": "0403",
+      		  "name": "Number Concentration of Particle Size 1um-10um",
+      		  "units": "p/cm3",
+              "type": "int16_t",
+              "access": "r",
+              "scale": "0.1",
+              "precision": "2",
+              "value": null
+      	    },
+      	    {
+      		  "id": "0404",
+      		  "name": "Number Concentration of Particle Size 2.5um-10um",
+      		  "units": "p/cm3",
+              "type": "int16_t",
+              "access": "r",
+              "scale": "0.1",
+              "precision": "2",
+              "value": null
+      	    },
+      	    {
+      		  "id": "0405",
+      		  "name": "Number Concentration of Particle Size 4um-10um",
+      		  "units": "p/cm3",
+              "type": "int16_t",
+              "access": "r",
+              "scale": "0.1",
+              "precision": "2",
+              "value": null
+      	    }
+          ]
+        }
+      },
+      {
+        "id": "0500",
+        "name": "KCL Mass Concentration",
+        "access": "r",
+        "gauge":
+        [
+          {
+            "id": "0501",
+            "name": "KCL Mass Concentration of Particle Size 0.3um-1um",
+            "units": "p/cm3",
+            "type": "int16_t",
+            "scale": "0.1",
+            "precision": "2",
+            "minimum": 0,
+            "maximum": 100,
+            "showminmax": true,
+            "default": 0,
+            "value": null
+          },
+          {
+            "id": "0502",
+            "name": "KCL Mass Concentration of Particle Size 0.3um-2.5um",
+            "units": "p/cm3",
+            "type": "int16_t",
+            "scale": "0.1",
+            "precision": "2",
+            "minimum": 0,
+            "maximum": 100,
+            "showminmax": true,
+            "default": 0,
+            "value": null
+          },
+          {
+            "id": "0503",
+            "name": "KCL Mass Concentration of Particle Size 0.3um-10um",
+            "units": "p/cm3",
+            "type": "int16_t",
+            "scale": "0.1",
+            "precision": "2",
+            "minimum": 0,
+            "maximum": 100,
+            "showminmax": true,
+            "default": 0,
+            "value": null
+          }
+        ]
+      },
+      {
+        "id": "0600",
+        "name": "Smoke Mass Concentration",
+        "access": "r",
+        "gauge":
+        [
+          {        
+            "id": "0601",
+            "name": "Smoke Mass Concentration of Particle Size 0.3um-1um",
+            "units": "p/cm3",
+            "type": "int16_t",
+            "scale": "0.1",
+            "precision": "2",
+            "minimum": 0,
+            "maximum": 100,
+            "showminmax": true,
+            "default": 0,
+            "value": null
+          },
+          {
+            "id": "0602",
+            "name": "Smoke Mass Concentration of Particle Size 0.3um-2.5um",
+            "units": "p/cm3",
+            "type": "int16_t",
+            "scale": "0.1",
+            "precision": "2",
+            "minimum": 0,
+            "maximum": 100,
+            "showminmax": true,
+            "default": 0,
+            "value": null
+          },
+          {
+            "id": "0603",
+            "name": "Smoke Mass Concentration of Particle Size 0.3um-10um",
+            "units": "p/cm3",
+            "type": "int16_t",
+            "scale": "0.1",
+            "precision": "2",
+            "minimum": 0,
+            "maximum": 100,
+            "showminmax": true,
+            "default": 0,
+            "value": null
+          }   
+        ] 
+      },
+      {
+        "id": "0700",
+        "name": "Status",
+        "access": "r",
+        "faults":
+        {
+          "id": "0701",
+          "name": "Sensor Internal State",
+          "type": "uint8_t",
+          "clear": true,
+          "access": "r",
+          "value": null,
+          "field":
+          [
+            {
+              "id": "0702",
+              "name": "Dust Concentration",
+              "type": "bool",
+              "access": "r",
+              "value": false
+            },
+            {
+              "id": "0703",
+              "name": "Dust Accumulation",
+              "type": "bool",
+              "access": "r",
+              "value": false
+            },
+            {
+              "id": "0704",
+              "name": "Fan Speed",
+              "type": "bool",
+              "access": "r",
+              "value": false
+            },
+            {
+              "id": "0705",
+              "name": "Fan Status",
+              "type": "bool",
+              "access": "r",
+              "value": false            
+            }
+          ]          
+        }    
+      }   
+    ]
+  }
+}
